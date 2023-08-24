@@ -9,15 +9,21 @@ const fetch = require('./lib/fetch')
 const merger=require('./lib/merger')
 
 const program = require('commander')
-program.version('1.0.0')
-    .option('-s --service <service>', 'which service to convert')
-    .option('-r --replace [repliaces]', 'comma split api name which will replace not merge')
-    .parse(process.argv)
+program
+  .version('1.0.0')
+  .option('-s --service <service>', 'which service to convert')
+  .option(
+    '-r --replace [repliaces]',
+    'comma split api name which will replace not merge'
+  )
+  .option('-c --collection <collection>', 'collection name')
+  .option('-u --url <url>', 'swagger url')
+  .parse(process.argv);
 
 
 var serviceConfig = config[program.service]
-var url = serviceConfig.url
-var collectionName = serviceConfig.collection_name
+var url = program.url || serviceConfig.swagger_url;
+var collectionName = program.collection || serviceConfig.collection_name;
 
 //run update
 update().catch(err => {

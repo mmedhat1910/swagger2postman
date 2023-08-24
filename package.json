@@ -22,6 +22,6 @@
     "pinyin": "^2.9.1"
   },
   "bin": {
-    "apih": "./index.js"
+    "swagger2postman": "./index.js"
   }
 }
