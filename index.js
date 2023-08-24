@@ -26,67 +26,71 @@ var url = program.url || serviceConfig.swagger_url;
 var collectionName = program.collection || serviceConfig.collection_name;
 
 //run update
-update().catch(err => {
-    console.error("run failed," + err)
-})
+update().catch((err) => {
+  console.error('run failed,' + err);
+});
 
 //get swagger json
 function getSwaggerJson(url) {
-    return fetch({
-        url: url,
-        methods: 'get'
-    }).then(response => {
-        return response.data
-    }).catch(err => {
-        console.log('get swagger json failed: ' + err.message)
-        process.exit(-1);
+  return fetch({
+    url: url,
+    methods: 'get',
+  })
+    .then((response) => {
+      return response.data;
     })
+    .catch((err) => {
+      console.log('get swagger json failed: ' + err.message);
+      process.exit(-1);
+    });
 }
 
-
-
 async function update() {
-    var swaggerJson = await getSwaggerJson(url)
-    //add postman collection used info
-    swaggerJson['info'] = {
-        'title': collectionName,
-        'description': collectionName + ' api',
-        'version': '1.0.0',
-        '_postman_id': '807bb824-b333-4b59-a6ef-a8d46d3b95bf'
+  var swaggerJson = await getSwaggerJson(url);
+  //add postman collection used info
+  swaggerJson['info'] = {
+    title: collectionName,
+    description: collectionName + ' api',
+    version: '1.0.0',
+    _postman_id: '807bb824-b333-4b59-a6ef-a8d46d3b95bf',
+  };
+  var converterInputData = {
+    type: 'json',
+    data: swaggerJson,
+  };
+
+  //use postman tool convert to postman collection
+  converter.convert(
+    converterInputData,
+    { folderStrategy: 'Tags' },
+    async (_a, res) => {
+      if (res.result === false) {
+        console.log('convert failed');
+        console.log(res.reason);
+        return;
+      }
+      var convertedJson = res.output[0].data;
+
+      var id = await collection.getCollectionId(collectionName);
+      if (id === null) {
+        return;
+      }
+      var collectionJson = {
+        collection: {
+          info: {
+            name: collectionName,
+            description: collectionName + ' api',
+            _postman_id: id,
+            schema:
+              'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
+          },
+          item: convertedJson.item,
+        },
+      };
+
+      var savedCollection = await collection.getCollectionDetail(id);
+      var mergedCollection = merger.merge(savedCollection, collectionJson);
+      collection.updateCollection(id, mergedCollection);
     }
-    var converterInputData = {
-        'type': 'json',
-        'data': swaggerJson
-    }
-
-    //use postman tool convert to postman collection
-    converter.convert(converterInputData, { 'folderStrategy': 'Tags' }, async (_a, res) => {
-        if (res.result === false) {
-            console.log('convert failed')
-            console.log(res.reason)
-            return
-        }
-        var convertedJson = res.output[0].data
-
-        var id = await collection.getCollectionId(collectionName)
-        if (id === null) {
-            return
-        }
-        var collectionJson = {
-            'collection': {
-                'info': {
-                    'name': collectionName,
-                    'description': collectionName + ' api',
-                    '_postman_id': id,
-                    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-
-                },
-                "item": convertedJson.item
-            }
-        }
-    
-        var savedCollection = await collection.getCollectionDetail(id)   
-        var mergedCollection=merger.merge(savedCollection,collectionJson)    
-        collection.updateCollection(id, mergedCollection)
-    })
+  );
 }
